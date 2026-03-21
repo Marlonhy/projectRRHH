@@ -1,0 +1,39 @@
+# Node modules
+node_modules/
+*/node_modules/
+
+# Entorno y variables secretas
+.env
+.env.local
+.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Builds del Frontend y Backend
+dist/
+dist-ssr/
+build/
+out/
+coverage/
+
+# Base de datos local (evita subir datos privados a Github)
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+backend/data/
+backend/uploads/
+
+# IDE y editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store

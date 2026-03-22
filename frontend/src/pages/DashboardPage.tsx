@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { authService, permissionService } from '../services/api'
+import ProfileModal from '../components/ProfileModal'
 import { UserData } from '../App'
 import '../App.css'
 
@@ -15,6 +16,7 @@ export default function DashboardPage({ user, onLogout }: Props) {
   const [dias, setDias] = useState({ dias_disponibles: 0 })
   const [loading, setLoading] = useState(true)
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768)
+  const [showProfileModal, setShowProfileModal] = useState(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -97,7 +99,15 @@ export default function DashboardPage({ user, onLogout }: Props) {
           </Link>
         </div>
         <div className="sidebar-user" style={{ padding: isSidebarOpen ? '16px 24px' : '16px 12px' }}>
-          <div className="user-info" style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center' }}>
+          <div 
+            className="user-info" 
+            style={{ 
+              justifyContent: isSidebarOpen ? 'flex-start' : 'center',
+              cursor: 'pointer'
+            }}
+            onClick={() => setShowProfileModal(true)}
+            title="Ver Perfil"
+          >
             <div className="user-avatar">{initials}</div>
             {isSidebarOpen && (
               <div>
@@ -209,6 +219,12 @@ export default function DashboardPage({ user, onLogout }: Props) {
           )}
         </div>
       </main>
+      {/* Modal de Mi Perfil */}
+      <ProfileModal 
+        user={user} 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
     </div>
   )
 }

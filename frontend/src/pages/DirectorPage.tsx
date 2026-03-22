@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { permissionService } from '../services/api'
+import ProfileModal from '../components/ProfileModal'
 import { UserData } from '../App'
 import { isHoliday } from '../utils/holidays'
 import '../App.css'
@@ -49,6 +50,7 @@ export default function DirectorPage({ user, onLogout }: Props) {
     const [razon, setRazon] = useState('')
     const [processing, setProcessing] = useState(false)
     const [toast, setToast] = useState('')
+    const [showProfileModal, setShowProfileModal] = useState(false)
 
     const showToast = (msg: string) => {
         setToast(msg)
@@ -239,7 +241,15 @@ export default function DirectorPage({ user, onLogout }: Props) {
                     </button>
                 </div>
                 <div className="sidebar-user" style={{ padding: isSidebarOpen ? '16px 24px' : '16px 12px' }}>
-                    <div className="user-info" style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center' }}>
+                    <div 
+                        className="user-info" 
+                        style={{ 
+                            justifyContent: isSidebarOpen ? 'flex-start' : 'center',
+                            cursor: 'pointer'
+                        }}
+                        onClick={() => setShowProfileModal(true)}
+                        title="Ver Perfil"
+                    >
                         <div className="user-avatar">{initials}</div>
                         {isSidebarOpen && (
                             <div>
@@ -687,6 +697,12 @@ export default function DirectorPage({ user, onLogout }: Props) {
                     </div>
                 </div>
             )}
+            {/* Modal de Perfil */}
+            <ProfileModal 
+                user={user} 
+                isOpen={showProfileModal} 
+                onClose={() => setShowProfileModal(false)} 
+            />
         </div>
     )
 }

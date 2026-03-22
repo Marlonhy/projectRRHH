@@ -9,6 +9,7 @@
  */
 import { useState, useEffect, useRef } from 'react'
 import { rrhhService, authService, permissionService } from '../services/api'
+import ProfileModal from '../components/ProfileModal'
 import { UserData } from '../App'
 import { isHoliday } from '../utils/holidays'
 import '../App.css'
@@ -18,7 +19,7 @@ interface Props {
   onLogout: () => void
 }
 
-type TabType = 'dashboard' | 'permisos' | 'trabajadores' | 'ausencias' | 'usuarios' | 'mis_permisos'
+type TabType = 'dashboard' | 'permisos' | 'trabajadores' | 'ausencias' | 'usuarios' | 'mis_permisos' | 'gestion_solicitudes'
 
 /**
  * AdminPage Component (Panel RRHH)
@@ -55,6 +56,7 @@ export default function AdminPage({ user, onLogout }: Props) {
   }
 
   // Modals
+  const [showProfileModal, setShowProfileModal] = useState(false)
   const [diasModal, setDiasModal] = useState<{ show: boolean; worker: any | null }>({ show: false, worker: null })
   const [diasForm, setDiasForm] = useState({ dias_disponibles: 15, dias_libres: 0, dias_sabados: 0, dias_calamidad: 0, dias_incapacidad: 0, dias_cita_medica: 0, dias_licencia: 0 })
 
@@ -218,6 +220,36 @@ export default function AdminPage({ user, onLogout }: Props) {
     }
   }
 
+  const handleApprovePermiso = async (id: number) => {
+    setProcessing(true)
+    try {
+      await permissionService.approvePermission(id)
+      showToast('✅ Solicitud aprobada correctamente')
+      await loadData()
+    } catch (err: any) {
+      showToast('❌ ' + (err.response?.data?.error || 'Error al aprobar solicitud'))
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleRejectPermiso = async (id: number) => {
+    const reason = window.prompt('Por favor, ingresa el motivo del rechazo:')
+    if (reason === null) return 
+    if (!reason.trim()) return showToast('⚠️ Debes ingresar un motivo')
+
+    setProcessing(true)
+    try {
+      await permissionService.rejectPermission(id, reason)
+      showToast('❌ Solicitud rechazada')
+      await loadData()
+    } catch (err: any) {
+      showToast('❌ ' + (err.response?.data?.error || 'Error al rechazar solicitud'))
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   const handleDeleteWorker = async (id: number, nombre: string, apellido: string) => {
     if (window.confirm(`¿Estás completamente seguro de que deseas eliminar permanentemente a ${nombre} ${apellido}? Esta acción borrará todo su historial, ausencias y permisos, y NO se puede deshacer.`)) {
       setProcessing(true)
@@ -306,20 +338,6 @@ export default function AdminPage({ user, onLogout }: Props) {
     showToast('📊 Reporte generado con éxito')
   }
 
-  const handleRejectPermiso = async (id: number) => {
-    const razon = window.prompt('Motivo del rechazo administrativo o gerencial:')
-    if (!razon) return
-    setProcessing(true)
-    try {
-      await permissionService.rejectPermission(id, razon)
-      showToast('❌ Permiso rechazado de forma concluyente.')
-      await loadData()
-    } catch (e: any) {
-      showToast('❌ Error: ' + (e.response?.data?.error || 'No se pudo rechazar'))
-    } finally {
-      setProcessing(false)
-    }
-  }
 
   const getTipoBadge = (tipo: string) => {
     const labels: any = {
@@ -403,6 +421,7 @@ export default function AdminPage({ user, onLogout }: Props) {
 
   const navItems: { key: TabType; label: string; icon: string }[] = [
     { key: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { key: 'gestion_solicitudes', label: 'Gestión de Solicitudes', icon: '⚖️' },
     { key: 'permisos', label: 'Todos los Permisos', icon: '📋' },
     { key: 'mis_permisos', label: 'Mis Permisos', icon: '👤' },
     { key: 'trabajadores', label: 'Usuarios del Sistema', icon: '👥' },
@@ -442,7 +461,15 @@ export default function AdminPage({ user, onLogout }: Props) {
           ))}
         </div>
         <div className="sidebar-user" style={{ padding: isSidebarOpen ? '16px 24px' : '16px 12px' }}>
-          <div className="user-info" style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center' }}>
+          <div 
+            className="user-info" 
+            style={{ 
+              justifyContent: isSidebarOpen ? 'flex-start' : 'center',
+              cursor: 'pointer'
+            }}
+            onClick={() => setShowProfileModal(true)}
+            title="Ver Perfil"
+          >
             <div className="user-avatar">{initials}</div>
             {isSidebarOpen && (
               <div>
@@ -572,6 +599,92 @@ export default function AdminPage({ user, onLogout }: Props) {
                     </div>
                   )}
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* ===== PERMISOS ===== */}
+
+          {/* ===== GESTION DE SOLICITUDES (PARA RRHH) ===== */}
+          {tab === 'gestion_solicitudes' && (
+            <>
+              <div className="page-header">
+                <h1>⚖️ Gestión de Solicitudes</h1>
+                <p>Solicitudes de Gerencia que requieren tu aprobación</p>
+              </div>
+              
+              <div className="card">
+                {loading ? (
+                  <div style={{ textAlign: 'center', padding: 60 }}><div className="spinner" style={{ margin: '0 auto' }}></div></div>
+                ) : permisos.filter((p: any) => p.director_id === user.id && p.estado === 'pendiente').length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">✅</div>
+                    <h3>Todo al día</h3>
+                    <p>No tienes solicitudes de Gerencia pendientes por aprobar.</p>
+                  </div>
+                ) : (
+                  <div className="table-wrapper">
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <th>Colaborador</th>
+                          <th>Tipo</th>
+                          <th>Días</th>
+                          <th>Salida</th>
+                          <th>Regreso</th>
+                          <th>Observación</th>
+                          <th>Soporte</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {permisos
+                          .filter((p: any) => p.director_id === user.id && p.estado === 'pendiente')
+                          .map((p: any) => (
+                            <tr key={p.id}>
+                              <td style={{ fontWeight: 600 }}>{p.colaborador_nombre} {p.colaborador_apellido}</td>
+                              <td>{getTipoBadge(p.tipo_permiso)}</td>
+                              <td><strong>{p.dias_solicitados}</strong></td>
+                              <td>{new Date(p.fecha_salida + 'T12:00:00').toLocaleDateString('es-CO')}</td>
+                              <td>{new Date(p.fecha_regreso + 'T12:00:00').toLocaleDateString('es-CO')}</td>
+                              <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{p.observacion || '—'}</td>
+                              <td>
+                                {p.soporte ? (
+                                  <a
+                                    href={permissionService.getSoporteUrl(p.soporte)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn btn-ghost btn-xs"
+                                    style={{ fontSize: 10 }}
+                                  >
+                                    📄 Ver Soporte
+                                  </a>
+                                ) : '—'}
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => handleApprovePermiso(p.id)}
+                                    disabled={processing}
+                                  >
+                                    ✅ Aprobar
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => handleRejectPermiso(p.id)}
+                                    disabled={processing}
+                                  >
+                                    ❌ Rechazar
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -1409,7 +1522,7 @@ export default function AdminPage({ user, onLogout }: Props) {
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowMyModal(false) }}>
           <div className="modal" style={{ animation: 'modalIn 0.3s ease-out' }}>
             <div className="modal-header">
-              <h2 className="modal-title">➕ Nueva Solicitud de Permiso</h2>
+              <h2 className="modal-title">➕ Nueva Solicitud</h2>
               <button className="modal-close" onClick={() => setShowMyModal(false)}>✕</button>
             </div>
 
@@ -1501,6 +1614,12 @@ export default function AdminPage({ user, onLogout }: Props) {
           </div>
         </div>
       )}
+      {/* Modal de Mi Perfil */}
+      <ProfileModal 
+        user={user} 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
     </div>
   )
 }

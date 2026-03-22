@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { permissionService } from '../services/api'
+import ProfileModal from '../components/ProfileModal'
 import { UserData } from '../App'
 import { isHoliday } from '../utils/holidays'
 import '../App.css'
@@ -42,6 +43,7 @@ export default function PermisosPage({ user, onLogout }: Props) {
   const [balance, setBalance] = useState<Balance>(EMPTY_BALANCE)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [showProfileModal, setShowProfileModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -197,7 +199,15 @@ export default function PermisosPage({ user, onLogout }: Props) {
           </Link>
         </div>
         <div className="sidebar-user" style={{ padding: isSidebarOpen ? '16px 24px' : '16px 12px' }}>
-          <div className="user-info" style={{ justifyContent: isSidebarOpen ? 'flex-start' : 'center' }}>
+          <div 
+            className="user-info" 
+            style={{ 
+              justifyContent: isSidebarOpen ? 'flex-start' : 'center',
+              cursor: 'pointer'
+            }}
+            onClick={() => setShowProfileModal(true)}
+            title="Ver Perfil"
+          >
             <div className="user-avatar">{initials}</div>
             {isSidebarOpen && (
               <div>
@@ -369,7 +379,7 @@ export default function PermisosPage({ user, onLogout }: Props) {
         <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="modal">
             <div className="modal-header">
-              <h2 className="modal-title">➕ Nueva Solicitud de Permiso</h2>
+              <h2 className="modal-title">➕ Nueva Solicitud</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
 
@@ -470,6 +480,12 @@ export default function PermisosPage({ user, onLogout }: Props) {
           </div>
         </div>
       )}
+      {/* Modal de Mi Perfil */}
+      <ProfileModal 
+        user={user} 
+        isOpen={showProfileModal} 
+        onClose={() => setShowProfileModal(false)} 
+      />
     </div>
   )
 }

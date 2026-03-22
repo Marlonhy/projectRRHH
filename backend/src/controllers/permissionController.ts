@@ -104,9 +104,8 @@ export class PermissionController {
         }
       }
 
-      // Si es Gerente, auto-aprobar
-      const isGerente = req.role === 'gerente';
-      const estadoInicial = isGerente ? 'aprobado' : 'pendiente';
+      // Todas las solicitudes inician como pendientes (Gerente ya no auto-aprueba)
+      const estadoInicial = 'pendiente';
 
       // Crear solicitud
       const insert = db.prepare(`
@@ -125,46 +124,27 @@ export class PermissionController {
         soporte || null,
         diasSolicitados,
         estadoInicial,
-        isGerente && workerInfo.rol === 'gerente' ? usuario_id : null, // Solo auto-aprueba si no es el caso especial de RRHH
-        isGerente && workerInfo.rol === 'gerente' ? new Date().toISOString() : null
+        null, 
+        null
       );
 
       const permissionId = result.lastInsertRowid;
 
-      // Si se auto-aprobó (Gerente) y es vacaciones, descontar de una vez
-      if (isGerente && tipo_permiso === 'vacaciones') {
-        const currentYear = new Date().getFullYear();
-        db.prepare(`
-          UPDATE PermisosDisponibles
-          SET dias_disponibles = dias_disponibles - ?,
-              fecha_actualizacion = datetime('now')
-          WHERE usuario_id = ? AND ano = ?
-        `).run(diasSolicitados, usuario_id, currentYear);
-      }
+      // Removido auto-descuento de vacaciones para gerente ya que ahora requiere aprobación
 
       // Obtener datos del colaborador y director para enviar email
       const worker = db.prepare('SELECT email, nombre, apellido FROM Usuarios WHERE id = ?').get(usuario_id) as any;
       
-      if (isGerente) {
-        // Enviar email de "Auto-Aprobado" (o simplemente de aprobado)
-        sendPermissionApprovedEmail(
-          worker.email,
-          `${worker.nombre} ${worker.apellido}`,
-          fecha_salida,
-          fecha_regreso
-        ).catch(err => console.error('Error enviando email de auto-aprobación:', err));
-      } else {
-        const boss = db.prepare('SELECT email, nombre FROM Usuarios WHERE id = ?').get(finalDirectorId) as any;
-        // Enviar email al director (no bloqueante)
-        sendPermissionRequestEmail(
-          boss.email,
-          `${worker.nombre} ${worker.apellido}`,
-          fecha_salida,
-          fecha_regreso,
-          tipo_permiso,
-          Number(permissionId)
-        ).catch(err => console.error('Error enviando email al director:', err));
-      }
+      const boss = db.prepare('SELECT email, nombre FROM Usuarios WHERE id = ?').get(finalDirectorId) as any;
+      // Enviar email al director (no bloqueante)
+      sendPermissionRequestEmail(
+        boss.email,
+        `${worker.nombre} ${worker.apellido}`,
+        fecha_salida,
+        fecha_regreso,
+        tipo_permiso,
+        Number(permissionId)
+      ).catch(err => console.error('Error enviando email al responsable:', err));
 
       res.status(201).json({
         message: 'Solicitud creada exitosamente',

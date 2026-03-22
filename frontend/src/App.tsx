@@ -25,6 +25,7 @@ export interface UserData {
   director_id?: number
   cargo?: string
   fecha_ingreso?: string
+  documento?: string
 }
 
 /**

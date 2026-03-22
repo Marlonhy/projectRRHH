@@ -1326,24 +1326,6 @@ export default function AdminPage({ user, onLogout }: Props) {
                 <label className="form-label">Sábados Libres</label>
                 <input type="number" className="form-control" value={diasForm.dias_sabados} min={0} onChange={e => setDiasForm({ ...diasForm, dias_sabados: parseInt(e.target.value) || 0 })} />
               </div>
-              <div className="form-group">
-                <label className="form-label">Calamidad (Total Acumulado)</label>
-                <input type="number" className="form-control" value={diasForm.dias_calamidad} min={0} onChange={e => setDiasForm({ ...diasForm, dias_calamidad: parseInt(e.target.value) || 0 })} />
-              </div>
-            </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="form-label">Incapacidad (Total Acumulado)</label>
-                <input type="number" className="form-control" value={diasForm.dias_incapacidad} min={0} onChange={e => setDiasForm({ ...diasForm, dias_incapacidad: parseInt(e.target.value) || 0 })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Citas Médicas (Total Acumulado)</label>
-                <input type="number" className="form-control" value={diasForm.dias_cita_medica} min={0} onChange={e => setDiasForm({ ...diasForm, dias_cita_medica: parseInt(e.target.value) || 0 })} />
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Licencia No Remun. (Total Acumulado)</label>
-              <input type="number" className="form-control" value={diasForm.dias_licencia} min={0} onChange={e => setDiasForm({ ...diasForm, dias_licencia: parseInt(e.target.value) || 0 })} />
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setDiasModal({ show: false, worker: null })}>Cancelar</button>
